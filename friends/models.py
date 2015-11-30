@@ -5,18 +5,15 @@ class Friend(models.Model):
     me = models.BooleanField(default=False)
     x = models.IntegerField()
     y = models.IntegerField()
+    distance = models.FloatField(null=True)
 
     friends = models.ForeignKey('self', null=True, blank=True)
 
-    friends_route = []
 
-
-    def save(self, *args, **kwargs):
-        if self.me:
-            self.x = self.world_size()
-            self.y = self.world_size()
-
-        super(Friend, self).save(*args, **kwargs)
+    @property
+    def friends_route(self):
+        friends = self.friend_set.all().order_by('distance')
+        return [{'id': f.id, 'distance': f.distance} for f in friends]
 
 
     def add_friend(self, f):
@@ -41,58 +38,52 @@ class Friend(models.Model):
         from random import randint
 
         self.friend_set.clear()
-        friends_num = randint(1, 10)
+        friends_num = randint(3, 10)
 
         for i in range(friends_num):
             while True:
-                x = self.world_size()
-                y = self.world_size()
-                f = Friend(x=x, y=y)
+                x = Friend.random_position()
+                y = Friend.random_position()
+                distance = self.distance_from(x, y)
+                f = Friend(x=x, y=y, distance=distance)
                 if self.add_friend(f):
                     break
 
-        self.get_route()
-
 
     def randomize(self):
-        self.x = self.world_size()
-        self.y = self.world_size()
+        self.x = Friend.random_position()
+        self.y = Friend.random_position()
         self.save()
 
         for friend in self.friend_set.all():
             while True:
-                friend.x = self.world_size()
-                friend.y = self.world_size()
+                friend.x = Friend.random_position()
+                friend.y = Friend.random_position()
+                friend.distance = self.distance_from(friend.x, friend.y)
                 if not self.friend_exists(friend):
                     friend.save()
                     break
 
 
-    def get_route(self):
-        from operator import itemgetter
-
-        friends = self.friend_set.all()
-
-        friends_list = [
-            self._distance_from_friend(friend) for friend in friends
-        ]
-
-        self.friends_route = sorted(friends_list, key=itemgetter('distance'))
-
-
-    def _distance_from_friend(self, friend):
+    def distance_from(self, friend_x, friend_y):
         import math
 
-        dist = math.hypot(friend.x - self.x, friend.y - self.y)
+        dist = math.hypot(friend_x - self.x, friend_y - self.y)
         dist = round(dist, 2)
 
-        return {'id': friend.id, 'distance': dist}
+        return dist
 
 
-    def world_size(self):
+    @staticmethod
+    def random_position():
         from random import randint
 
-        return randint(0, 100)
+        return randint(*Friend.world_size())
+
+
+    @staticmethod
+    def world_size():
+        return (0, 100)
 
 
     def __str__(self):
