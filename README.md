@@ -58,10 +58,10 @@ Every endpoint at this API return and expect a JSON
 
 ## Makefile
  
-   - TBD
+  - Created makefile with rules to install requirements, run and stop the server
 
 
 ## Client
 
-   - TBD (but the API is browsable, try it)
+  - TBD (but the API is browsable, try it)
 
